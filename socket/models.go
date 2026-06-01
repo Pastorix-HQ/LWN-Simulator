@@ -23,6 +23,7 @@ type NewPayload struct {
 	Id      int    `json:"id"`      // Id is the unique identifier of the payload.
 	MType   string `json:"mtype"`   // MType is the message type.
 	Payload string `json:"payload"` // Payload is the actual payload data.
+	Base64  bool   `json:"base64"`  // Base64 indicates Payload is base64-encoded (allows binary payloads over the JSON control surface).
 }
 
 // NewLocation represents the geographical location of a device.

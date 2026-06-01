@@ -137,8 +137,16 @@ func (d *Device) SendMACCommand(cid lorawan.CID, periodicity uint8) error {
 
 func (d *Device) NewUplink(mtype lorawan.MType, payload string) {
 
+	d.NewUplinkBytes(mtype, []byte(payload))
+
+}
+
+// NewUplinkBytes queues an uplink from raw payload bytes, allowing binary
+// payloads that cannot survive a UTF-8 string round-trip.
+func (d *Device) NewUplinkBytes(mtype lorawan.MType, payload []byte) {
+
 	FRMPayload := &lorawan.DataPayload{
-		Bytes: []byte(payload),
+		Bytes: payload,
 	}
 
 	info := mup.InfoFrame{
