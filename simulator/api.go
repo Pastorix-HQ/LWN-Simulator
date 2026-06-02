@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -352,8 +353,14 @@ func (s *Simulator) ChangePayload(pl socket.NewPayload) (string, bool) {
 		MType = lorawan.ConfirmedDataUp
 	}
 
+	bytes, err := resolvePayloadBytes(pl)
+	if err != nil {
+		s.Console.PrintSocket(socket.EventResponseCommand, s.Devices[pl.Id].Info.Name+": invalid base64 payload")
+		return devEUIstring, false
+	}
+
 	Payload := &lorawan.DataPayload{
-		Bytes: []byte(pl.Payload),
+		Bytes: bytes,
 	}
 
 	s.Devices[pl.Id].ChangePayload(MType, Payload)
@@ -361,6 +368,16 @@ func (s *Simulator) ChangePayload(pl socket.NewPayload) (string, bool) {
 	s.Console.PrintSocket(socket.EventResponseCommand, s.Devices[pl.Id].Info.Name+": Payload changed")
 
 	return devEUIstring, true
+}
+
+// resolvePayloadBytes returns the raw payload bytes for a control-surface
+// payload. When pl.Base64 is set the payload is base64-decoded, allowing
+// binary payloads (e.g. typed uplinks) that cannot ride a UTF-8 JSON string.
+func resolvePayloadBytes(pl socket.NewPayload) ([]byte, error) {
+	if pl.Base64 {
+		return base64.StdEncoding.DecodeString(pl.Payload)
+	}
+	return []byte(pl.Payload), nil
 }
 
 func (s *Simulator) SendUplink(pl socket.NewPayload) {
@@ -375,7 +392,13 @@ func (s *Simulator) SendUplink(pl socket.NewPayload) {
 		MType = lorawan.ConfirmedDataUp
 	}
 
-	s.Devices[pl.Id].NewUplink(MType, pl.Payload)
+	bytes, err := resolvePayloadBytes(pl)
+	if err != nil {
+		s.Console.PrintSocket(socket.EventResponseCommand, "invalid base64 payload")
+		return
+	}
+
+	s.Devices[pl.Id].NewUplinkBytes(MType, bytes)
 
 	s.Console.PrintSocket(socket.EventResponseCommand, "Uplink queued")
 }
