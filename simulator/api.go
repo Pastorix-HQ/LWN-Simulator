@@ -363,6 +363,10 @@ func (s *Simulator) ChangePayload(pl socket.NewPayload) (string, bool) {
 		Bytes: bytes,
 	}
 
+	if fport := resolveFPort(pl); fport != nil {
+		s.Devices[pl.Id].Info.Status.DataUplink.FPort = fport
+	}
+
 	s.Devices[pl.Id].ChangePayload(MType, Payload)
 
 	s.Console.PrintSocket(socket.EventResponseCommand, s.Devices[pl.Id].Info.Name+": Payload changed")
@@ -378,6 +382,19 @@ func resolvePayloadBytes(pl socket.NewPayload) ([]byte, error) {
 		return base64.StdEncoding.DecodeString(pl.Payload)
 	}
 	return []byte(pl.Payload), nil
+}
+
+// resolveFPort returns the FPort override for a control-surface payload, or nil
+// when no override is requested (pl.FPort <= 0), in which case the device keeps
+// its configured uplink FPort. A non-nil result lets a triggered uplink be sent
+// on a per-message FPort (e.g. 5 for a Position Report) instead of the default.
+// FPort 0 is reserved for MAC commands and is never a valid application port.
+func resolveFPort(pl socket.NewPayload) *uint8 {
+	if pl.FPort > 0 && pl.FPort <= 255 {
+		fport := uint8(pl.FPort)
+		return &fport
+	}
+	return nil
 }
 
 func (s *Simulator) SendUplink(pl socket.NewPayload) {
@@ -396,6 +413,10 @@ func (s *Simulator) SendUplink(pl socket.NewPayload) {
 	if err != nil {
 		s.Console.PrintSocket(socket.EventResponseCommand, "invalid base64 payload")
 		return
+	}
+
+	if fport := resolveFPort(pl); fport != nil {
+		s.Devices[pl.Id].Info.Status.DataUplink.FPort = fport
 	}
 
 	s.Devices[pl.Id].NewUplinkBytes(MType, bytes)

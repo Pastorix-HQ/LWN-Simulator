@@ -24,6 +24,7 @@ type NewPayload struct {
 	MType   string `json:"mtype"`   // MType is the message type.
 	Payload string `json:"payload"` // Payload is the actual payload data.
 	Base64  bool   `json:"base64"`  // Base64 indicates Payload is base64-encoded (allows binary payloads over the JSON control surface).
+	FPort   int    `json:"fport"`   // FPort overrides the device's uplink FPort when > 0 (per-message typed uplinks, e.g. 5 = Position Report). 0 keeps the device default.
 }
 
 // NewLocation represents the geographical location of a device.
